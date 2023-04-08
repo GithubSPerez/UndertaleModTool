@@ -1382,10 +1382,12 @@ namespace UndertaleModLib.Decompiler
                             KeyValuePair<string, UndertaleFunction> kvp = subFuncs.FirstOrDefault(x => x.Value == Function);
 
                             // If we found an associated sub-function, use the key as the name.
-                            if (kvp.Key != null)
+                            /*if (kvp.Key != null)
                                 sb.Append(kvp.Key);
                             else
-                                sb.Append((context.Statements[0].Last() as AssignmentStatement).Destination.Var.Name.Content);
+                                sb.Append((context.Statements[0].Last() as AssignmentStatement).Destination.Var.Name.Content);*/
+                            // este cambio es por un error de null object reference de kvp
+                            sb.Append(Function.Name.Content.Replace("gml_Script_", ""));
                         }
                         sb.Append("(");
                         for (int i = 0; i < FunctionBodyCodeEntry.ArgumentsCount; ++i)
