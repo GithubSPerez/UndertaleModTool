@@ -815,12 +815,14 @@ namespace UndertaleModLib.Compiler
                     KeywordFunction,
                     OpenBlock, // {
                     CloseBlock, // }
+                    DefineStruct, // {$
                     OpenArray, // [
                     CloseArray, // ]
                     OpenArrayMap, // [?
                     OpenArrayBaseArray, // [@
                     OpenArrayGrid, // [#
                     OpenArrayList, // [|
+                    OpenStruct, // [$
                     OpenParen, // (
                     CloseParen, // )
                     LogicalAnd, // &&

@@ -715,6 +715,14 @@ namespace UndertaleModTool
                         else if (decompiled != null)
                         {
                             DecompiledEditor.Document.Text = decompiled;
+                            string codePath = mainWindow.ProjectPath + "code/" + code.Name.Content + ".gml";
+                            if (File.Exists(codePath))
+                            {
+                                DecompiledEditor.Document.Text = File.ReadAllText(codePath);
+                                //Debug.WriteLine();
+                                mainWindow.SetUMTConsoleText("code loaded from" + codePath);
+                            }
+                            
                             CurrentLocals = new List<string>();
 
                             var locals = dataa.CodeLocals.ByName(code.Name.Content);
@@ -770,6 +778,7 @@ namespace UndertaleModTool
 
         private async Task DecompiledLostFocusBody(object sender, RoutedEventArgs e)
         {
+        
             if (!DecompiledFocused)
                 return;
             if (DecompiledEditor.IsReadOnly)
@@ -822,6 +831,9 @@ namespace UndertaleModTool
 
             CompileContext compileContext = null;
             string text = DecompiledEditor.Text;
+
+            var ogCode = text;
+
             var dispatcher = Dispatcher;
             Task t = Task.Run(() =>
             {
@@ -872,6 +884,7 @@ namespace UndertaleModTool
                     {
                         // Write text, only if in the profile mode.
                         File.WriteAllText(path, DecompiledEditor.Text);
+                        
                     }
                     else
                     {
@@ -903,8 +916,21 @@ namespace UndertaleModTool
                 return;
             }
 
+            //DecompiledEditor.Document.BeginUpdate();
+
+            File.WriteAllText(mainWindow.ProjectPath + "code/" + code.Name.Content + ".gml", ogCode);
+
             // Decompile new code
             await DecompileCode(code, false, dialog);
+
+            DecompiledEditor.Text = ogCode;
+
+            //throw new Exception("wtf is happening");
+
+            /*await Task.Run(() => 
+            {
+                mainWindow.ShowQuestion(ogCode);
+            });*/
 
             //GMLCacheChanged.Add() is inside DecompileCode()
         }

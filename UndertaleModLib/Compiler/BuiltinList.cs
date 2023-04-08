@@ -583,6 +583,8 @@ namespace UndertaleModLib.Compiler
             Functions["http_request"] = new FunctionInfo(this, 4);
             Functions["json_encode"] = new FunctionInfo(this, 1);
             Functions["json_decode"] = new FunctionInfo(this, 1);
+            Functions["json_parse"] = new FunctionInfo(this, 1);
+            Functions["json_stringify"] = new FunctionInfo(this, -1);
             Functions["zip_unzip"] = new FunctionInfo(this, 2);
             Functions["load_csv"] = new FunctionInfo(this, 1);
             Functions["move_random"] = new FunctionInfo(this, 2, true);
@@ -1118,6 +1120,11 @@ namespace UndertaleModLib.Compiler
             Functions["variable_instance_get"] = new FunctionInfo(this, 2);
             Functions["variable_instance_set"] = new FunctionInfo(this, 3);
             Functions["variable_instance_get_names"] = new FunctionInfo(this, 1);
+            Functions["variable_struct_exists"] = new FunctionInfo(this, 2);
+            Functions["variable_struct_get"] = new FunctionInfo(this, 2);
+            Functions["variable_struct_set"] = new FunctionInfo(this, 3);
+            Functions["variable_struct_remove"] = new FunctionInfo(this, 2);
+            Functions["variable_struct_get_names"] = new FunctionInfo(this, 1);
             Functions["random"] = new FunctionInfo(this, 1);
             Functions["random_range"] = new FunctionInfo(this, 2);
             Functions["irandom"] = new FunctionInfo(this, 1);

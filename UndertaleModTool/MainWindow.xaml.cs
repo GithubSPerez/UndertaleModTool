@@ -68,6 +68,8 @@ namespace UndertaleModTool
         public string FilePath { get; set; }
         public string ScriptPath { get; set; } // For the scripting interface specifically
 
+        public string ProjectPath { get; set; }
+
         public string TitleMain { get; set; }
 
         public static RoutedUICommand CloseTabCommand = new RoutedUICommand("Close current tab", "CloseTab", typeof(MainWindow));
@@ -687,7 +689,7 @@ namespace UndertaleModTool
                 }
             }
         }
-
+        // aqui aweonao
         public async Task<bool> DoOpenDialog()
         {
             OpenFileDialog dlg = new OpenFileDialog();
@@ -698,6 +700,9 @@ namespace UndertaleModTool
             if (dlg.ShowDialog(this) == true)
             {
                 await LoadFile(dlg.FileName, true);
+                ProjectPath = System.IO.Path.ChangeExtension(dlg.FileName, null) + "/";
+                Directory.CreateDirectory(ProjectPath);
+                Directory.CreateDirectory(ProjectPath + "code/");
                 return true;
             }
             return false;
@@ -1241,6 +1246,10 @@ namespace UndertaleModTool
 
             GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
             GC.Collect();
+
+            this.WindowState = WindowState.Minimized;
+            this.Show();
+            this.WindowState = WindowState.Normal;
         }
 
         public string GenerateMD5(string filename)

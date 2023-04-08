@@ -247,8 +247,9 @@ namespace UndertaleModLib.Compiler
                         Decompiler.Decompiler.BuildSubFunctionCache(compileContext.Data);
                         foreach (var patch in funcPatches)
                         {
-                            if (patch.isNewFunc)
+                            if (patch.isNewFunc && !compileContext.Data.KnownSubFunctions.ContainsKey("gml_Script_" + patch.Name))
                             {
+                                Debug.WriteLine(patch.Name);
                                 UndertaleString childName = new("gml_Script_" + patch.Name);
                                 int childNameIndex = compileContext.Data.Strings.Count;
                                 compileContext.Data.Strings.Add(childName);
@@ -383,6 +384,7 @@ namespace UndertaleModLib.Compiler
                 public int ArgCount;
                 public uint Offset;
                 public bool isNewFunc = false;
+                public string context = "";
             }
 
             public class StringPatch
@@ -1172,6 +1174,7 @@ namespace UndertaleModLib.Compiler
                     }
                 }
 
+                
                 cw.funcPatches.Add(new FunctionPatch()
                 {
                     Target = cw.EmitRef(Opcode.Call, DataType.Int32),
@@ -1285,6 +1288,7 @@ namespace UndertaleModLib.Compiler
                             }
                             else // we're making a new function baby
                             {
+                                //throw new Exception("yeesh");
                                 cw.funcPatches.Add(new FunctionPatch()
                                 {
                                     Name = funcDefName.Text,
