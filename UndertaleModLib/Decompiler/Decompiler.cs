@@ -3855,7 +3855,7 @@ namespace UndertaleModLib.Decompiler
                 data.KnownSubFunctions = new Dictionary<string, UndertaleFunction>();
                 GlobalDecompileContext globalDecompileContext = new GlobalDecompileContext(data, false);
 
-                Parallel.ForEach(data.GlobalInitScripts, globalScript =>
+                /*Parallel.ForEach(data.GlobalInitScripts, globalScript =>
                 {
                     UndertaleCode scriptCode = globalScript.Code;
                     processingCodeList[scriptCode.Name.Content] = null;
@@ -3881,6 +3881,41 @@ namespace UndertaleModLib.Decompiler
                     catch (Exception e)
                     {
                         Debug.WriteLine(e.ToString());
+                    }
+
+                    processingCodeList.Remove(scriptCode.Name.Content, out _);
+                });*/
+                // este lo hago para hacer un cache de todo el codigo envez de solo los scripts globales
+                Parallel.ForEach(data.Code, globalScript =>
+                {
+                    UndertaleCode scriptCode = globalScript;
+                    processingCodeList[scriptCode.Name.Content] = null;
+                    try
+                    {
+                        DecompileContext childContext = new DecompileContext(globalDecompileContext, scriptCode, false);
+                        childContext.DisableAnonymousFunctionNameResolution = true;
+                        Dictionary<uint, Block> blocks2 = PrepareDecompileFlow(scriptCode, new List<uint>() { 0 });
+                        DecompileFromBlock(childContext, blocks2, blocks2[0]);
+                        List<Statement> statements = HLDecompile(childContext, blocks2, blocks2[0], blocks2[scriptCode.Length / 4]);
+                        foreach (Statement stmt2 in statements)
+                        {
+                            if (stmt2 is AssignmentStatement assign &&
+                                assign.Value is FunctionDefinition funcDef)
+                            {
+                                lock (data.KnownSubFunctions)
+                                {
+                                    if (assign.Destination.Var.Name.Content == "fstring")
+                                    {
+                                        Debug.WriteLine(assign.Destination.Var.Name.Content + " is real!");
+                                    }
+                                    data.KnownSubFunctions.Add(assign.Destination.Var.Name.Content, funcDef.Function);
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        //Debug.WriteLine(e.ToString());
                     }
 
                     processingCodeList.Remove(scriptCode.Name.Content, out _);
