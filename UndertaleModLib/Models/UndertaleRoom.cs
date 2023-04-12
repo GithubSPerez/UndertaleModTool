@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -422,6 +423,20 @@ public class UndertaleRoom : UndertaleNamedResource, INotifyPropertyChanged, IDi
                 if (layer.InstancesData != null)
                 {
                     layer.InstancesData.Instances.Clear();
+                    if (GameObjects.Count > 0 && layer.InstancesData.InstanceIds.Length > 0
+                        && layer.InstancesData.InstanceIds[0] > GameObjects[^1].InstanceID)
+                    {
+                        // Make sure it's not a false positive
+                        uint firstLayerInstID = layer.InstancesData.InstanceIds.OrderBy(x => x).First();
+                        uint lastInstID = GameObjects.OrderBy(x => x.InstanceID).Last().InstanceID;
+                        if (firstLayerInstID > lastInstID)
+                        {
+                            Debug.WriteLine($"The first instance ID ({firstLayerInstID}) " +
+                                            $"of layer (ID {layer.LayerId}) is greater than the last game object ID ({lastInstID}) ?");
+                            continue;
+                        }
+                    }
+
                     foreach (var id in layer.InstancesData.InstanceIds)
                     {
                         GameObject gameObj = GameObjects.ByInstanceID(id);
@@ -436,6 +451,12 @@ public class UndertaleRoom : UndertaleNamedResource, INotifyPropertyChanged, IDi
                              * If you can get two broken objects in a row... it'll probably crash.
                              */
                             int foundIndex = GameObjects.IndexOf(GameObjects.ByInstanceID(id - 1));
+                            if (GameObjects.Count - 1 <= foundIndex)
+                            {
+                                Debug.WriteLine($"The object instance with ID {id} of a layer (ID {layer.LayerId}) is not found.");
+                                continue;
+                            }
+                            
                             layer.InstancesData.Instances.Add(GameObjects[foundIndex + 1]);
                         }
                     }
@@ -1129,7 +1150,7 @@ public class UndertaleRoom : UndertaleNamedResource, INotifyPropertyChanged, IDi
 
         public override string ToString()
         {
-            return "Instance " + InstanceID + " of " + (ObjectDefinition?.Name?.Content ?? "?") + " (UndertaleRoom+GameObject)";
+            return "Instance " + InstanceID + " of " + (ObjectDefinition?.Name?.Content ?? "?");
         }
 
         /// <inheritdoc/>
@@ -1325,7 +1346,7 @@ public class UndertaleRoom : UndertaleNamedResource, INotifyPropertyChanged, IDi
         /// <inheritdoc />
         public override string ToString()
         {
-            return "Tile " + InstanceID + " of " + (ObjectDefinition?.Name?.Content ?? "?") + " (UndertaleRoom+Tile)";
+            return "Tile " + InstanceID + " of " + (ObjectDefinition?.Name?.Content ?? "?");
         }
 
         /// <inheritdoc/>
@@ -1545,7 +1566,7 @@ public class UndertaleRoom : UndertaleNamedResource, INotifyPropertyChanged, IDi
         /// <inheritdoc />
         public override string ToString()
         {
-            return GetType().FullName + " - \"" + LayerName?.Content + '\"';
+            return $"Layer \"{LayerName?.Content}\"";
         }
 
         /// <inheritdoc/>
@@ -1562,6 +1583,11 @@ public class UndertaleRoom : UndertaleNamedResource, INotifyPropertyChanged, IDi
         {
             internal uint[] InstanceIds { get; private set; } // 100000, 100001, 100002, 100003 - instance ids from GameObjects list in the room
             public ObservableCollection<GameObject> Instances { get; private set; } = new();
+
+            public bool AreInstancesUnresolved()
+            {
+                return InstanceIds?.Length > 0 && Instances?.Count == 0;
+            }
 
             /// <inheritdoc />
             public void Serialize(UndertaleWriter writer)
@@ -2139,7 +2165,7 @@ public class UndertaleRoom : UndertaleNamedResource, INotifyPropertyChanged, IDi
         /// <inheritdoc />
         public override string ToString()
         {
-            return "Sprite " + Name?.Content + " of " + (Sprite?.Name?.Content ?? "?") + " (UndertaleRoom+SpriteInstance)";
+            return "Sprite \"" + Name?.Content + "\" of " + (Sprite?.Name?.Content ?? "?");
         }
 
         /// <inheritdoc/>
@@ -2211,7 +2237,7 @@ public class UndertaleRoom : UndertaleNamedResource, INotifyPropertyChanged, IDi
         /// <inheritdoc />
         public override string ToString()
         {
-            return "Sequence " + Name?.Content + " of " + (Sequence?.Name?.Content ?? "?") + " (UndertaleRoom+SequenceInstance)";
+            return "Sequence " + Name?.Content + " of " + (Sequence?.Name?.Content ?? "?");
         }
 
         /// <inheritdoc/>

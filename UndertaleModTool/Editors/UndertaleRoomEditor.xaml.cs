@@ -146,12 +146,18 @@ namespace UndertaleModTool
                 RoomRootItem.IsSelected = true;
 
                 ScrollViewer viewer = MainWindow.FindVisualChild<ScrollViewer>(RoomObjectsTree);
-                viewer.ScrollToVerticalOffset(0);
-                viewer.ScrollToHorizontalOffset(0);
+                if (viewer is not null)
+                {
+                    viewer.ScrollToTop();
+                    viewer.ScrollToLeftEnd();
+                }
 
                 RoomGraphics.ClearValue(LayoutTransformProperty);
-                RoomGraphicsScroll.ScrollToVerticalOffset(0);
-                RoomGraphicsScroll.ScrollToHorizontalOffset(0);
+                _ = Dispatcher.InvokeAsync(() =>
+                {
+                    RoomGraphicsScroll.ScrollToTop();
+                    RoomGraphicsScroll.ScrollToLeftEnd();
+                }, DispatcherPriority.ContextIdle);
             }
 
             UndertaleCachedImageLoader.Reset();
@@ -187,6 +193,14 @@ namespace UndertaleModTool
                         }
                         else if (layer.LayerType == LayerType.Instances)
                         {
+                            if (layer.InstancesData.AreInstancesUnresolved())
+                            {
+                                _ = mainWindow.Dispatcher.InvokeAsync(() =>
+                                {
+                                    mainWindow.ShowWarning($"The instances list of layer \"{layer.LayerName.Content}\" is empty, but the layer has the instances ID.");
+                                }, DispatcherPriority.ContextIdle);
+                            }
+
                             foreach (GameObject obj in layer.InstancesData.Instances)
                                 roomObjDict.TryAdd(obj.InstanceID, layer);
                         }
@@ -703,9 +717,8 @@ namespace UndertaleModTool
         private void Canvas_MouseWheel(object sender, MouseWheelEventArgs e)
         {
             e.Handled = true;
-            var element = sender as ItemsControl;
             var mousePos = e.GetPosition(RoomGraphics);
-            var transform = element.LayoutTransform as MatrixTransform;
+            var transform = RoomGraphics.LayoutTransform as MatrixTransform;
             var matrix = transform.Matrix;
             var scale = e.Delta >= 0 ? 1.1 : (1.0 / 1.1); // choose appropriate scaling factor
 
@@ -713,7 +726,7 @@ namespace UndertaleModTool
             {
                 matrix.ScaleAtPrepend(scale, scale, mousePos.X, mousePos.Y);
             }
-            element.LayoutTransform = new MatrixTransform(matrix);
+            RoomGraphics.LayoutTransform = new MatrixTransform(matrix);
         }
 
         private void ScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
@@ -985,81 +998,8 @@ namespace UndertaleModTool
         {
             if (e.Key == Key.Delete)
             {
-                UndertaleRoom room = this.DataContext as UndertaleRoom;
                 UndertaleObject selectedObj = ObjectEditor.Content as UndertaleObject;
-
-                if (selectedObj is Background bg)
-                {
-                    bg.Enabled = false;
-                    bg.BackgroundDefinition = null;
-
-                    ObjectEditor.Content = null;
-                }
-                else if (selectedObj is View view)
-                {
-                    view.Enabled = false;
-
-                    ObjectEditor.Content = null;
-                }
-                else if (selectedObj is Tile tile)
-                {
-                    if (mainWindow.IsGMS2 == Visibility.Visible)
-                    {
-                        foreach (var layer in room.Layers)
-                            if (layer.AssetsData != null)
-                                layer.AssetsData.LegacyTiles.Remove(tile);
-                        roomObjDict.Remove(tile.InstanceID, out _);
-                    }
-
-                    room.Tiles.Remove(tile);
-
-                    ObjectEditor.Content = null;
-                }
-                else if (selectedObj is GameObject gameObj)
-                {
-                    if (mainWindow.IsGMS2 == Visibility.Visible)
-                    {
-                        foreach (var layer in room.Layers)
-                            if (layer.InstancesData != null)
-                                layer.InstancesData.Instances.Remove(gameObj);
-                        roomObjDict.Remove(gameObj.InstanceID, out _);
-                    }
-
-                    room.GameObjects.Remove(gameObj);
-
-                    ObjectEditor.Content = null;
-                }
-                else if (selectedObj is SpriteInstance sprInst)
-                {
-                    foreach (var layer in room.Layers)
-                        if (layer.AssetsData != null)
-                            layer.AssetsData.Sprites.Remove(sprInst);
-
-                    sprInstDict.Remove(sprInst, out _);
-
-                    ObjectEditor.Content = null;
-                }
-                else if (selectedObj is Layer layer)
-                {
-                    if (layer.InstancesData != null)
-                        foreach (var go in layer.InstancesData.Instances)
-                            room.GameObjects.Remove(go);
-
-                    foreach (var pair in roomObjDict)
-                        if (pair.Value == layer)
-                            roomObjDict.Remove(pair.Key, out _);
-
-                    foreach (var pair in sprInstDict)
-                        if (pair.Value == layer)
-                            sprInstDict.Remove(pair.Key, out _);
-
-                    room.Layers.Remove(layer);
-
-                    if (layer.LayerType == LayerType.Background)
-                        room.UpdateBGColorLayer();
-
-                    ObjectEditor.Content = null;
-                }
+                DeleteItem(selectedObj);
             }
 
             int dir = 0;
@@ -1423,6 +1363,84 @@ namespace UndertaleModTool
             SelectObject(tile);
         }
 
+        private void DeleteItem(UndertaleObject obj)
+        {
+            UndertaleRoom room = this.DataContext as UndertaleRoom;
+
+            // We need to check before deleting the object but can only clear the editor after deleting the object
+            bool clearEditor = (obj == (ObjectEditor.Content as UndertaleObject));
+
+            if (obj is Background bg)
+            {
+                bg.Enabled = false;
+                bg.BackgroundDefinition = null;
+            }
+            else if (obj is View view)
+            {
+                view.Enabled = false;
+            }
+            else if (obj is Tile tile)
+            {
+                if (mainWindow.IsGMS2 == Visibility.Visible)
+                {
+                    foreach (var layer in room.Layers)
+                        if (layer.AssetsData != null)
+                            layer.AssetsData.LegacyTiles.Remove(tile);
+                    roomObjDict.Remove(tile.InstanceID, out _);
+                }
+
+                room.Tiles.Remove(tile);
+            }
+            else if (obj is GameObject gameObj)
+            {
+                if (mainWindow.IsGMS2 == Visibility.Visible)
+                {
+                    foreach (var layer in room.Layers)
+                        if (layer.InstancesData != null)
+                            layer.InstancesData.Instances.Remove(gameObj);
+                    roomObjDict.Remove(gameObj.InstanceID, out _);
+                }
+
+                room.GameObjects.Remove(gameObj);
+            }
+            else if (obj is SpriteInstance sprInst)
+            {
+                foreach (var layer in room.Layers)
+                    if (layer.AssetsData != null)
+                        layer.AssetsData.Sprites.Remove(sprInst);
+
+                sprInstDict.Remove(sprInst, out _);
+            }
+            else if (obj is ParticleSystemInstance partSysInst)
+            {
+                foreach (var layer in room.Layers)
+                    if (layer.AssetsData != null)
+                        layer.AssetsData.ParticleSystems.Remove(partSysInst);
+            }
+            else if (obj is Layer layer)
+            {
+                if (layer.InstancesData != null)
+                    foreach (var go in layer.InstancesData.Instances)
+                        room.GameObjects.Remove(go);
+
+                foreach (var pair in roomObjDict)
+                    if (pair.Value == layer)
+                        roomObjDict.Remove(pair.Key, out _);
+
+                foreach (var pair in sprInstDict)
+                    if (pair.Value == layer)
+                        sprInstDict.Remove(pair.Key, out _);
+
+                room.Layers.Remove(layer);
+
+                if (layer.LayerType == LayerType.Background)
+                    room.UpdateBGColorLayer();
+            }
+
+            if (clearEditor)
+                ObjectEditor.Content = null;
+        }
+
         private void MenuItem_NewLayerInstances_Click(object sender, RoutedEventArgs e)
         {
             AddLayer<Layer.LayerInstancesData>(LayerType.Instances, "NewInstancesLayer");
@@ -1468,6 +1486,12 @@ namespace UndertaleModTool
         private void MenuItem_NewGMS1Tile_Click(object sender, RoutedEventArgs e)
         {
             AddGMS1Tile(this.DataContext as UndertaleRoom);
+        }
+        private void MenuItem_Delete_Click(Object sender, RoutedEventArgs e)
+        {
+            MenuItem menuitem = sender as MenuItem;
+            if (menuitem.DataContext is UndertaleObject obj)
+                DeleteItem(obj);
         }
 
         public static void GenerateSpriteCache(UndertaleRoom room)
@@ -1650,12 +1674,53 @@ namespace UndertaleModTool
                     return;
                 }
 
+                char delimChar = ';';
+                Func<string, uint> numParseFunc = (x) => UInt32.Parse(x);
+                if (tileDataLines[0].Count(x => x == ',') > 1)
+                {
+                    var res = mainWindow.ShowQuestion("Was the data exported from \"Tiled\"?");
+                    if (res == MessageBoxResult.Yes)
+                    {
+                        delimChar = ',';
+                        numParseFunc = (x) =>
+                        {
+                            uint val;
+                            unchecked { val = (uint)Int32.Parse(x); }
+                            if (val == uint.MaxValue)
+                                return 0;
+
+                            uint id = val & 0x0FFFFFFF;
+                            uint flags = val & 0xF0000000;
+                            flags = flags switch
+                            {
+                                0 => 0,
+                                2147483648 => 1, // RotateNoneFlipX
+                                1073741824 => 2, // RotateNoneFlipY
+                                3221225472 => 3, // RotateNoneFlipXY
+                                2684354560 => 4, // Rotate90FlipNone
+                                3758096384 => 5, // Rotate270FlipY
+                                536870912 => 6,  // Rotate90FlipY
+                                1610612736 => 7, // Rotate270FlipNone
+                                _ => throw new InvalidDataException($"{flags} is not a valid tile flag value.")
+                            };
+                            flags <<= 28;
+
+                            return (id | flags);
+                        };
+                    }
+                    else
+                    {
+                        mainWindow.ShowError("The file has invalid data.");
+                        return;
+                    }
+                }
+
                 for (int i = 0; i < tileDataLines.Length; i++)
                 {
                     uint[] dataRow;
                     try
                     {
-                        dataRow = tileDataLines[i].Split(';').Select(x => UInt32.Parse(x)).ToArray();
+                        dataRow = tileDataLines[i].Split(delimChar).Select(numParseFunc).ToArray();
                     }
                     catch (Exception ex)
                     {
@@ -2323,11 +2388,11 @@ namespace UndertaleModTool
                                     angle = 90;
                                     break;
                                 case 5:
-                                    angle = 90;
+                                    angle = 270;
                                     scaleY = -1;
                                     break;
                                 case 6:
-                                    angle = 270;
+                                    angle = 90;
                                     scaleY = -1;
                                     break;
                                 case 7:

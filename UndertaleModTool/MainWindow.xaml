@@ -112,13 +112,34 @@
                 <local:MenuItemDark x:Name="RootScriptItem" Header="_Scripts" SubmenuOpened="RootMenuItem_SubmenuOpened">
                     <MenuItem Header="(...loading...)" IsEnabled="False"/>
                 </local:MenuItemDark>
+                <local:MenuItemDark Header="_Find">
+                    <MenuItem.Resources>
+                        <Style TargetType="MenuItem">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Data, Mode=OneWay}" Value="{x:Null}">
+                                    <Setter Property="IsEnabled" Value="False"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </MenuItem.Resources>
+
+                    <MenuItem Header="Find unreferenced _assets" Name="FindUnreferencedAssetsItem" Click="MenuItem_FindUnreferencedAssets_Click"/>
+                    <Separator/>
+                    <MenuItem Header="(script links)" FontStyle="Italic" IsEnabled="False"/>
+                    <MenuItem Header="Search in _code (&quot;Search.csx&quot;)"
+                              Click="MenuItem_RunBuiltinScript_Item_Click" CommandParameter="Scripts\Builtin Scripts\Search.csx"/>
+                    <MenuItem Header="Search in _assembly (&quot;SearchASM.csx&quot;)"
+                              Click="MenuItem_RunBuiltinScript_Item_Click" CommandParameter="Scripts\Builtin Scripts\SearchASM.csx"/>
+                    <MenuItem Header="Search in _specific code (&quot;SearchLimited.csx&quot;)"
+                              Click="MenuItem_RunBuiltinScript_Item_Click" CommandParameter="Scripts\Builtin Scripts\SearchLimited.csx"/>
+                </local:MenuItemDark>
                 <local:MenuItemDark Header="_Help">
                     <MenuItem Header="_GitHub" Click="MenuItem_GitHub_Click"/>
                     <MenuItem Header="_About" Click="MenuItem_About_Click"/>
                 </local:MenuItemDark>
             </Menu>
             <Grid DockPanel.Dock="Bottom">
-                <TextBox x:Name="CommandBox" AcceptsReturn="True" PreviewKeyDown="CommandBox_PreviewKeyDown" Margin="0,0,35,0"/>
+                <local:TextBoxDark x:Name="CommandBox" AcceptsReturn="True" PreviewKeyDown="CommandBox_PreviewKeyDown" Margin="0,0,35,0"/>
                 <Label Content="None" HorizontalAlignment="Right" VerticalAlignment="Top" VerticalContentAlignment="Top" Name="ObjectLabel"/>
             </Grid>
             <Grid>
@@ -195,7 +216,7 @@
                         </local:ButtonDark>
                     </StackPanel>
 
-                    <TextBox Grid.Row="1" Name="SearchBox" ToolTip="Search" TextChanged="SearchBox_TextChanged">
+                    <local:TextBoxDark Grid.Row="1" x:Name="SearchBox" ToolTip="Search" TextChanged="SearchBox_TextChanged">
                         <!-- Source - https://stackoverflow.com/a/7433840/12136394 -->
                         <TextBox.Style>
                             <Style TargetType="TextBox">
@@ -219,7 +240,7 @@
                                 </Style.Triggers>
                             </Style>
                         </TextBox.Style>
-                    </TextBox>
+                    </local:TextBoxDark>
                 </Grid>
                 <TreeView Grid.Column="0" Grid.Row="1" Name="MainTree" Margin="5" DataContext="{Binding Data}" AllowDrop="True"
                           SelectedItemChanged="TreeView_SelectedItemChanged"
@@ -231,8 +252,9 @@
                         <local:ContextMenuDark x:Key="AddMenu">
                             <MenuItem Header="Add" Click="MenuItem_Add_Click"/>
                         </local:ContextMenuDark>
-                        <local:ContextMenuDark x:Key="UndertaleResourceMenu">
+                        <local:ContextMenuDark x:Key="UndertaleResourceMenu" Opened="MenuItem_ContextMenuOpened">
                             <MenuItem Header="Open in new tab" Click="MenuItem_OpenInNewTab_Click"/>
+                            <MenuItem Header="Find all references" Click="MenuItem_FindAllReferences_Click"/>
                             <MenuItem Header="Copy name to clipboard" Click="MenuItem_CopyName_Click"/>
                             <MenuItem Header="Delete" Click="MenuItem_Delete_Click"/>
                         </local:ContextMenuDark>
@@ -464,7 +486,7 @@
                             <local:TabControlDark x:Name="TabController" Height="22" TabStripPlacement="Top" ItemsSource="{Binding Tabs, Mode=OneWay}" SelectedIndex="{Binding CurrentTabIndex}"
                                                   SelectionChanged="TabController_SelectionChanged">
                                 <TabControl.Resources>
-                                    <ContextMenu x:Key="TabMenu">
+                                    <local:ContextMenuDark x:Key="TabMenu">
                                         <MenuItem Header="Close" Click="CloseTabMenuItem_Click" InputGestureText="Ctrl+W"/>
                                         <MenuItem Header="Close other tabs" Click="CloseOtherTabsMenuItem_Click">
                                             <MenuItem.Style>
@@ -478,7 +500,7 @@
                                             </MenuItem.Style>
                                         </MenuItem>
                                         <MenuItem Header="Close all tabs" Command="{x:Static local:MainWindow.CloseAllTabsCommand}" InputGestureText="Ctrl+Shift+W"/>
-                                    </ContextMenu>
+                                    </local:ContextMenuDark>
                                 </TabControl.Resources>
                                 <TabControl.ItemContainerStyle>
                                     <Style TargetType="TabItem">

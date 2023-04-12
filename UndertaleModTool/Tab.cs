@@ -170,6 +170,14 @@ namespace UndertaleModTool
 
                 title = "String - " + stringFirstLine;
             }
+            else if (obj is UndertaleExtensionFile file)
+            {
+                title = $"Extension file - {file.Filename}";
+            }
+            else if (obj is UndertaleExtensionFunction func)
+            {
+                title = $"Extension function - {func.Name}";
+            }
             else if (obj is UndertaleChunkVARI)
             {
                 title = "Variables Overview";
@@ -532,6 +540,18 @@ namespace UndertaleModTool
                     };
                     break;
 
+                case UndertaleEmbeddedTextureEditor textureEditor:
+                    ScrollViewer texturePreviewViewer = textureEditor.TextureScroll;
+                    (double Left, double Top) texturePrevScrollPos = (texturePreviewViewer.HorizontalOffset, texturePreviewViewer.VerticalOffset);
+
+                    LastContentState = new TexturePageTabState()
+                    {
+                        MainScrollPosition = mainScrollPos,
+                        TexturePreviewScrollPosition = texturePrevScrollPos,
+                        TexturePreviewTransform = textureEditor.TextureViewbox.LayoutTransform
+                    };
+                    break;
+
                 default:
                     LastContentState = new()
                     {
@@ -595,20 +615,30 @@ namespace UndertaleModTool
                 case RoomTabState roomTabState:
                     var roomEditor = editor as UndertaleRoomEditor;
 
-                    roomEditor.RoomGraphics.LayoutTransform = roomTabState.RoomPreviewTransform;
-                    roomEditor.RoomGraphics.UpdateLayout();
+                    bool fromReferencesResults = true;
+                    if (roomTabState.ObjectTreeItemsStates is not null)
+                    {
+                        fromReferencesResults = false;
+
+                        roomEditor.RoomGraphics.LayoutTransform = roomTabState.RoomPreviewTransform;
+                        roomEditor.RoomGraphics.UpdateLayout();
+                    }  
 
                     ScrollViewer roomPreviewViewer = roomEditor.RoomGraphicsScroll;
                     roomPreviewViewer.ScrollToHorizontalOffset(roomTabState.RoomPreviewScrollPosition.Left);
                     roomPreviewViewer.ScrollToVerticalOffset(roomTabState.RoomPreviewScrollPosition.Top);
 
+                    
                     // (Sadly, arrays don't support destructuring like tuples)
-                    roomEditor.BGItems.IsExpanded = roomTabState.ObjectTreeItemsStates[0];
-                    roomEditor.ViewItems.IsExpanded = roomTabState.ObjectTreeItemsStates[1];
-                    roomEditor.GameObjItems.IsExpanded = roomTabState.ObjectTreeItemsStates[2];
-                    roomEditor.TileItems.IsExpanded = roomTabState.ObjectTreeItemsStates[3];
-                    roomEditor.LayerItems.IsExpanded = roomTabState.ObjectTreeItemsStates[4];
-                    roomEditor.RoomRootItem.UpdateLayout();
+                    if (roomTabState.ObjectTreeItemsStates is not null)
+                    {
+                        roomEditor.BGItems.IsExpanded = roomTabState.ObjectTreeItemsStates[0];
+                        roomEditor.ViewItems.IsExpanded = roomTabState.ObjectTreeItemsStates[1];
+                        roomEditor.GameObjItems.IsExpanded = roomTabState.ObjectTreeItemsStates[2];
+                        roomEditor.TileItems.IsExpanded = roomTabState.ObjectTreeItemsStates[3];
+                        roomEditor.LayerItems.IsExpanded = roomTabState.ObjectTreeItemsStates[4];
+                        roomEditor.RoomRootItem.UpdateLayout();
+                    }
 
                     // Select the object
                     if (roomTabState.SelectedObject is not UndertaleRoom)
@@ -629,6 +659,12 @@ namespace UndertaleModTool
                                 var room = roomEditor.DataContext as UndertaleRoom;
                                 if (room.Flags.HasFlag(RoomEntryFlags.IsGMS2))
                                 {
+                                    if (fromReferencesResults)
+                                    {
+                                        roomEditor.LayerItems.IsExpanded = true;
+                                        roomEditor.RoomRootItem.UpdateLayout();
+                                    }
+
                                     layer = room.Layers
                                                 .FirstOrDefault(l => l.LayerType is LayerType.Instances
                                                     && (l.InstancesData.Instances?.Any(x => x.InstanceID == gameObj.InstanceID) ?? false));
@@ -642,6 +678,12 @@ namespace UndertaleModTool
                                 room = roomEditor.DataContext as UndertaleRoom;
                                 if (room.Flags.HasFlag(RoomEntryFlags.IsGMS2))
                                 {
+                                    if (fromReferencesResults)
+                                    {
+                                        roomEditor.LayerItems.IsExpanded = true;
+                                        roomEditor.RoomRootItem.UpdateLayout();
+                                    }
+
                                     layer = room.Layers
                                                 .FirstOrDefault(l => l.LayerType is LayerType.Assets
                                                     && (l.AssetsData.LegacyTiles?.Any(x => x.InstanceID == tile.InstanceID) ?? false));
@@ -656,6 +698,12 @@ namespace UndertaleModTool
                                 break;
 
                             case SpriteInstance spr:
+                                if (fromReferencesResults)
+                                {
+                                    roomEditor.LayerItems.IsExpanded = true;
+                                    roomEditor.RoomRootItem.UpdateLayout();
+                                }
+
                                 room = roomEditor.DataContext as UndertaleRoom;
                                 layer = room.Layers
                                             .FirstOrDefault(l => l.LayerType is LayerType.Assets
@@ -675,14 +723,19 @@ namespace UndertaleModTool
                             return;
                         objItem.IsSelected = true;
                         objItem.Focus();
+                        if (fromReferencesResults)
+                            objItem.BringIntoView();
 
                         roomEditor.RoomRootItem.UpdateLayout();
                     }
 
-                    ScrollViewer treeObjViewer = MainWindow.FindVisualChild<ScrollViewer>(roomEditor.RoomObjectsTree);
-                    treeObjViewer.ScrollToHorizontalOffset(roomTabState.ObjectsTreeScrollPosition.Left);
-                    treeObjViewer.ScrollToVerticalOffset(roomTabState.ObjectsTreeScrollPosition.Top);
-                    treeObjViewer.UpdateLayout();
+                    if (!fromReferencesResults)
+                    {
+                        ScrollViewer treeObjViewer = MainWindow.FindVisualChild<ScrollViewer>(roomEditor.RoomObjectsTree);
+                        treeObjViewer.ScrollToHorizontalOffset(roomTabState.ObjectsTreeScrollPosition.Left);
+                        treeObjViewer.ScrollToVerticalOffset(roomTabState.ObjectsTreeScrollPosition.Top);
+                        treeObjViewer.UpdateLayout();
+                    }
                     break;
 
                 case FontTabState fontTabState:
@@ -806,6 +859,12 @@ namespace UndertaleModTool
                             list.Item2.SelectedItem = selectedItem;
                         }
                     }
+                    break;
+
+                case TexturePageTabState texturePageTabState:
+                    UndertaleEmbeddedTextureEditor.OverriddenPreviewState = (texturePageTabState.TexturePreviewTransform,
+                                                                             texturePageTabState.TexturePreviewScrollPosition.Left,
+                                                                             texturePageTabState.TexturePreviewScrollPosition.Top);
                     break;
 
                 default:
@@ -969,6 +1028,16 @@ namespace UndertaleModTool
         /// Texture pages, sprites, spine sprites, fonts, tilesets.
         /// </remarks>
         public (bool IsExpanded, double ScrollPos, object SelectedItem)[] GroupListsStates;
+    }
+
+    /// <summary>Stores the information about the tab with a texture page.</summary>
+    public class TexturePageTabState : TabContentState
+    {
+        /// <summary>The scroll position of the embedded texture editor preview.</summary>
+        public (double Left, double Top) TexturePreviewScrollPosition;
+
+        /// <summary>The scale of the embedded texture editor preview.</summary>
+        public Transform TexturePreviewTransform;
     }
 
 
