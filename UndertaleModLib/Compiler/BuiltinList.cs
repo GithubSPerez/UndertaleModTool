@@ -1464,8 +1464,8 @@ namespace UndertaleModLib.Compiler
             Functions["audio_emitter_velocity"] = new FunctionInfo(this, 4);
             Functions["audio_emitter_falloff"] = new FunctionInfo(this, 4);
             Functions["audio_emitter_gain"] = new FunctionInfo(this, 2);
-            Functions["audio_play_sound"] = new FunctionInfo(this, 3);
-            Functions["audio_play_sound_on"] = new FunctionInfo(this, 4);
+            Functions["audio_play_sound"] = new FunctionInfo(this, -1);
+            Functions["audio_play_sound_on"] = new FunctionInfo(this, -1);
             Functions["audio_play_sound_at"] = new FunctionInfo(this, 9);
             Functions["audio_stop_sound"] = new FunctionInfo(this, 1);
             Functions["audio_resume_sound"] = new FunctionInfo(this, 1);

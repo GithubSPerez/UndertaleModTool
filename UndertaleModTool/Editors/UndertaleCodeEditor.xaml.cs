@@ -921,6 +921,10 @@ namespace UndertaleModTool
             File.WriteAllText(mainWindow.ProjectPath + "code/" + code.Name.Content + ".gml", ogCode);
 
             // Decompile new code
+            /*await Task.Run(() => 
+            {
+                mainWindow.ShowQuestion("did not decompile :o");
+            });*/
             await DecompileCode(code, false, dialog);
 
             DecompiledEditor.Text = ogCode;

@@ -1046,6 +1046,9 @@ namespace UndertaleModLib.Decompiler
 
             public override Statement CleanStatement(DecompileContext context, BlockHLStatement block)
             {
+                if (!context.TempVarMap.ContainsKey(Var.Var.Name)) // in case a var just doesn't exist
+                    return this;
+
                 TempVarAssignmentStatement tempVarStatement = context.TempVarMap[Var.Var.Name];
                 if (tempVarStatement != null)
                 {
@@ -3112,6 +3115,9 @@ namespace UndertaleModLib.Decompiler
 
                     if (Condition == null)
                     {
+                        if (Block.Statements.Count() == 0) // maybe sequence is empty
+                            return this;
+
                         if (Block.Statements.Last() is IfHLStatement)
                         {
                             IfHLStatement ifStatement = Block.Statements.Last() as IfHLStatement;
